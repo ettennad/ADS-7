@@ -1,49 +1,68 @@
 // Copyright 2021 NNTU-CS
 #include "train.h"
-#include <iostream>
+#include <cstdint>
 
-Train::Train() : first(nullptr), countOp(0) {}
+Train::Train() {
+  countOp = 0;
+  first = nullptr;
+}
 
 Train::~Train() {
-  if (!first) return;
-  Car* cur = first->next;
-  while (cur != first) {
-    Car* toDelete = cur;
-    cur = cur->next;
+  if (first == nullptr) return;
+
+  Car* walker = first;
+  Car* toDelete = nullptr;
+  do {
+    toDelete = walker;
+    walker = walker->next;
     delete toDelete;
-  }
-  delete first;
+  } while (walker != first);
+
+  first = nullptr;
 }
 
 void Train::addCar(bool light) {
-  Car* newCar = new Car(light);
-  if (!first) {
+  Car* newCar = new Car{ light, nullptr, nullptr };
+
+  if (first == nullptr) {
+    newCar->next = newCar;
+    newCar->prev = newCar;
     first = newCar;
-    first->next = first;
-    first->prev = first;
   } else {
-    Car* last = first->prev;
-    last->next = newCar;
-    newCar->prev = last;
+    Car* tail = first->prev;
     newCar->next = first;
+    newCar->prev = tail;
+    tail->next = newCar;
     first->prev = newCar;
   }
 }
 
 int Train::getLength() {
-  if (!first) return 0;
   countOp = 0;
-  bool initialLight = first->light;
-  first->light = !initialLight;
-  Car* current = first->next;
-  countOp++;
-  while (current != first) {
-    current = current->next;
-    countOp++;
+
+  while (true) {
+    Car* cursor = first;
+    uint16_t lengthEstimate = 1;
+
+    if (!cursor->light)
+      cursor->light = true;
+
+    cursor = cursor->next;
+    countOp += 2;
+
+    while (!cursor->light) {
+      cursor = cursor->next;
+      countOp += 2;
+      ++lengthEstimate;
+    }
+
+    cursor->light = false;
+
+    if (!first->light)
+      return lengthEstimate;
   }
-  first->light = initialLight;
-  return countOp;
 }
-int Train::getOpCount() const {
+
+int Train::getOpCount() {
   return countOp;
 }
